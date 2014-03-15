@@ -21,7 +21,7 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 		// select distinct metric names
 		def metrics = TimeSeriesMeasurement.executeQuery('select distinct metric from TimeSeriesMeasurement'),
 			now = System.currentTimeMillis()
-		println metrics
+		log.debug(metrics.toString())
 		metrics.each {metric->
 			def expiration = getMillisecondExpirations(metric, config),
 				oldest = new Date(now - expiration)
@@ -102,6 +102,10 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 				rec2."count${agg.interval}" = rec2."count${agg.interval}" ?: 0i
 				rec2."total${agg.interval}" = rec2."total${agg.interval}" ?: 0d
 				rec2."count${agg.interval}"++
+				if (rec2."max${agg.interval}" == null || v > rec2."max${agg.interval}")  rec2."max${agg.interval}" = v // overwrites can mess up max
+				if (rec2."min${agg.interval}" == null || v < rec2."min${agg.interval}")  rec2."min${agg.interval}" = v // overwrite can mess up min
+				if (rec2.high == null || v > rec2.high)  rec2.high = v // overwrites can mess up max
+				if (rec2.low == null || v < rec2.low)  rec2.low = v // overwrite can mess up min
 				rec2."total${agg.interval}"+=v
 				if (!rec2.save()) {
 					println rec2.errors
@@ -169,7 +173,7 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 			rtn[rec.refId][rec.metric] = rtn[rec.refId][rec.metric] ?: []
 			(0..95).each {idx->
 				if (rec."count${idx}") {
-					rtn[rec.refId][rec.metric] << [start:new Date(rec.start.time + (Long)(idx*rec.duration*1000)), average:(rec."total${idx}"/rec."count${idx}"), count: rec."count${idx}", sum: rec."total${idx}"]
+					rtn[rec.refId][rec.metric] << [start:new Date(rec.start.time + (Long)(idx*rec.duration*1000)), average:(rec."total${idx}"/rec."count${idx}"), count: rec."count${idx}", sum: rec."total${idx}", max: rec."max${idx}", min: rec."min${idx}"]
 				}
 			}
 		}
