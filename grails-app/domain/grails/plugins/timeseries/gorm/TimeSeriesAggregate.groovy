@@ -400,6 +400,14 @@ class TimeSeriesAggregate {
 	Double min94
 	Double min95
 
+	static mapping = {
+		resolution index: 'idx_agg_st_ref_met_res'
+		refId index: 'idx_agg_st_ref_met_res'
+		start index: 'idx_agg_st_ref_met_res'
+		metric index: 'idx_agg_st_ref_met_res,idx_agg_ed_met'
+		end index: 'idx_agg_ed_met'
+	}
+
     static constraints = {
 	resolution maxSize:8
 	high nullable: true

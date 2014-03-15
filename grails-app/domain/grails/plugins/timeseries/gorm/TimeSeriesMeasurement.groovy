@@ -109,6 +109,10 @@ class TimeSeriesMeasurement {
 
 	static mapping = {
 		count column:'ct'
+		refId index: 'idx_st_ref_met'
+		start index: 'idx_st_ref_met'
+		metric index: 'idx_st_ref_met,idx_ed_met'
+		end index: 'idx_ed_met'
 	}
 
     static constraints = {
