@@ -3,14 +3,8 @@ package grails.plugins.timeseries.gorm
 import grails.plugins.timeseries.*
 import grails.converters.*
 import groovy.transform.PackageScope
-import groovy.sql.*
-/*
-data model for this provider is really a model for a document-based storage provider
-it would be more efficient to store data in a less structured form in a SortedMap kind of thing  
-*/
-class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
-	@PackageScope Map internalData
 
+class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 	public GORMTimeSeriesProvider() {
 		super()
 	}

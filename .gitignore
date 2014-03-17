@@ -11,5 +11,3 @@ cobertura.ser
 *.idea/**
 *.iml
 /plugins
-/plugins/time-series-0.1-SNAPSHOT/src/groovy/grails/plugins/timeseries/TimeSeriesProvider.groovy
-/plugins/time-series-0.1-SNAPSHOT/src/groovy/grails/plugins/timeseries/AbstractTimeSeriesProvider.groovy
