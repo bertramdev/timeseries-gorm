@@ -4,9 +4,7 @@ class TimeSeriesGORMGrailsPlugin {
     def title = "Time Series GORM Plugin"
     def author = "Jeremy Leng"
     def authorEmail = "jleng@bcap.com"
-    def description = '''\
-GORM implementation of time series.
-'''
+    def description = 'GORM implementation of time series.'
     def dependsOn = [timeSeries: "* > 0.1-SNAPSHOT"]
     def documentation = "https://github.com/bertramdev/timeseries-gorm"
     def license = "APACHE"
