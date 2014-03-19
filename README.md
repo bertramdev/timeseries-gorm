@@ -1,4 +1,5 @@
-timeseries-gorm
-===============
+TimeSeries GORM Grails Plugin
+=======================================
 
-Grails Plugin for read/write of timeseries data using GORM to store data
+TimeSeries grails plugin GORM provider. See also [Time Series Grails Plugin](https://github.com/bertramdev/timeseries).
+
