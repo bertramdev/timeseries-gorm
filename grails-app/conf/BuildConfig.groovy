@@ -45,7 +45,7 @@ grails.project.dependency.resolution = {
               ":rest-client-builder:1.0.3") {
             export = false
         }
-        runtime ":time-series:0.1-SNAPSHOT"
+        runtime ":time-series:0.2.0"
         // plugins for the build system only
         build ":tomcat:7.0.47"
         // plugins needed at runtime but not for compilation

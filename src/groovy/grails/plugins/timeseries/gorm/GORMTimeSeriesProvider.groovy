@@ -60,6 +60,40 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 	}
 
 	@Override
+	void saveCounters(String referenceId, Map<String, Double> counters, Date timestamp, groovy.util.ConfigObject config) {
+		def startAndInterval,
+			aggregates
+		counters.each {k, v->
+			startAndInterval = getCounterStartAndInterval(k, timestamp, config)
+			def rec = TimeSeriesCounter.findWhere(aggregate:false, resolution:startAndInterval.resolution, refId: referenceId, counter:k, start:startAndInterval.start, end: startAndInterval.end)
+			if (!rec) {
+				rec = new TimeSeriesCounter(aggregate:false, duration: startAndInterval.intervalSecs, resolution:startAndInterval.resolution, refId: referenceId, counter:k, start:startAndInterval.start, end: startAndInterval.end)
+			}
+
+			rec.total += v
+			rec."count${startAndInterval.interval}" = rec."count${startAndInterval.interval}" != null ? rec."count${startAndInterval.interval}" : 0d
+			rec."count${startAndInterval.interval}" += v
+			rec.save()
+
+			aggregates = getCounterAggregateStartsAndIntervals(k, timestamp, config)
+			aggregates?.each {agg->
+				def rec2 = TimeSeriesCounter.findWhere(aggregate:true, resolution:agg.resolution, refId: referenceId, counter:k, start:agg.start, end: agg.end)
+				if (!rec2) {
+					rec2 = new TimeSeriesCounter(aggregate:true, duration: agg.intervalSecs, resolution:agg.resolution, refId: referenceId, counter:k, start:agg.start, end: agg.end)
+				}
+				rec2."count${startAndInterval.interval}" = rec2."count${startAndInterval.interval}" != null ? rec2."count${startAndInterval.interval}" : 0d
+				rec2."count${agg.interval}" = rec2."count${agg.interval}" ?: 0i
+				rec2.total += v
+				rec2."count${startAndInterval.interval}" += v
+				if (!rec2.save()) {
+					println rec2.errors
+				}
+			}
+		}
+	}
+
+
+	@Override
 	void saveMetrics(String referenceId, Map<String, Double> metrics, Date timestamp, groovy.util.ConfigObject config) {
 		def startAndInterval,
 			aggregates
@@ -111,11 +145,54 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 	}
 
 	@Override
+	void bulkSaveCounters(String referenceId, List<Map<Date, Map<String, Double>>> countersByTime, groovy.util.ConfigObject config) {
+		countersByTime.each {timestamp, counters->
+			saveCounters(referenceId, counters, timestamp, config)
+		}
+	}
+
+	@Override
 	void bulkSaveMetrics(String referenceId, List<Map<Date, Map<String, Double>>> metricsByTime, groovy.util.ConfigObject config) {
 		metricsByTime.each {timestamp, metrics->
 			saveMetrics(referenceId, metrics, timestamp, config)
 		}
 	}
+
+	@Override
+	Map getCounters(Date start, Date end, String referenceIdQuery, String counterNameQuery, Map<String, Object> options, groovy.util.ConfigObject config) {
+		def rtn = [:],
+			res,
+			recs = TimeSeriesCounter.createCriteria().list {
+				eq('aggregate', false)
+				if (referenceIdQuery) ilike('refId', referenceIdQuery)
+				if (counterNameQuery) ilike('counter', counterNameQuery)
+				gte('end', start)
+				lte('start', end)
+			}
+
+		recs.each {rec->
+			rtn[rec.refId] = rtn[rec.refId] ?: [:]
+			rtn[rec.refId][rec.counter] = rtn[rec.refId][rec.counter] ?: []
+			(0..95).each {idx->
+				if (rec."count${idx}") {
+					//println new Date(rec.start.time + (Long)(idx*rec.duration*1000))					
+					rtn[rec.refId][rec.counter] << [timestamp:new Date(rec.start.time + (Long)(idx*rec.duration*1000)), count: rec."count${idx}"]
+				}
+
+			}
+		}
+		def items =[]
+//		println new JSON(rtn).toString(true)
+		rtn.each {k, v->
+			def tmp = [referenceId: k, series:[]]
+			v.each {m, vals->
+				tmp.series << [name:m, values:vals]
+			}
+			items << tmp
+		}
+		[start:start, end:end, items:items]
+	}
+
 
 	@Override
 	Map getMetrics(Date start, Date end, String referenceIdQuery, String metricNameQuery, Map<String, Object> options, groovy.util.ConfigObject config) {
@@ -152,6 +229,41 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 	}
 
 	@Override
+	Map getCounterAggregates(String resolution, Date start, Date end, String referenceIdQuery, String counterNameQuery, Map<String, Object> options, groovy.util.ConfigObject config) {
+		def rtn = [:],
+			res,
+			recs = TimeSeriesCounter.createCriteria().list {
+				eq('aggregate', true)
+				if (referenceIdQuery) ilike('refId', referenceIdQuery)
+				if (counterNameQuery) ilike('counter', counterNameQuery)
+				eq('resolution', resolution)
+				gte('end', start)
+				lte('start', end)
+			}
+		recs.each {rec->
+			rtn[rec.refId] = rtn[rec.refId] ?: [:]
+			rtn[rec.refId][rec.counter] = rtn[rec.refId][rec.counter] ?: []
+			(0..95).each {idx->
+				if (rec."count${idx}") {
+					rtn[rec.refId][rec.counter] << [start:new Date(rec.start.time + (Long)(idx*rec.duration*1000)), count: rec."count${idx}"]
+				}
+			}
+		}
+		def items =[]
+//		println new JSON(rtn).toString(true)
+		rtn.each {k, v->
+			def tmp = [referenceId: k, series:[]]
+			v.each {m, vals->
+				tmp.series << [name:m, values:vals]
+			}
+			items << tmp
+		}
+		[start:start, end:end, items:items, resolution:resolution]
+
+	}
+
+
+	@Override
 	Map getMetricAggregates(String resolution, Date start, Date end, String referenceIdQuery, String metricNameQuery, Map<String, Object> options, groovy.util.ConfigObject config) {
 		def rtn = [:],
 			res,
@@ -180,7 +292,7 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 			}
 			items << tmp
 		}
-		[start:start, end:end, items:items]
+		[start:start, end:end, items:items, resolution:resolution]
 
 	}
 
