@@ -59,6 +59,8 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 		super.toString()
 	}
 
+	// this needs to be redone with raw sql
+
 	@Override
 	void saveCounters(String referenceId, Map<String, Double> counters, Date timestamp, groovy.util.ConfigObject config) {
 		def startAndInterval,
@@ -81,10 +83,10 @@ class GORMTimeSeriesProvider extends AbstractTimeSeriesProvider {
 				if (!rec2) {
 					rec2 = new TimeSeriesCounter(aggregate:true, duration: agg.intervalSecs, resolution:agg.resolution, refId: referenceId, counter:k, start:agg.start, end: agg.end)
 				}
-				rec2."count${startAndInterval.interval}" = rec2."count${startAndInterval.interval}" != null ? rec2."count${startAndInterval.interval}" : 0d
+				rec2."count${agg.interval}" = rec2."count${agg.interval}" != null ? rec2."count${agg.interval}" : 0d
 				rec2."count${agg.interval}" = rec2."count${agg.interval}" ?: 0i
 				rec2.total += v
-				rec2."count${startAndInterval.interval}" += v
+				rec2."count${agg.interval}" += v
 				if (!rec2.save()) {
 					println rec2.errors
 				}

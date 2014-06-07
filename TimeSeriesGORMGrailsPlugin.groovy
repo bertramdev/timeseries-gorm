@@ -1,5 +1,5 @@
 class TimeSeriesGORMGrailsPlugin {
-    def version = "0.2.0"
+    def version = "0.2.1"
     def grailsVersion = "2.0 > *"
     def title = "Time Series GORM Plugin"
     def author = "Jeremy Leng"
